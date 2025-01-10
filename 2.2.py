@@ -1,4 +1,3 @@
-
 import pyray as pr
 import numpy as np
 import math
@@ -15,6 +14,7 @@ def initialize_camera():
         pr.CAMERA_PERSPECTIVE
     )
     return camera
+
 def update_camera_position(camera, movement_speed):
     """Met à jour la position de la caméra en fonction des touches pressées."""
     if pr.is_key_down(pr.KEY_W):
@@ -29,19 +29,7 @@ def update_camera_position(camera, movement_speed):
         camera.position.y += movement_speed
     if pr.is_key_down(pr.KEY_E):
         camera.position.y -= movement_speed
-
-def dot_product(A, B):
-    return A.x * B.x + A.y * B.y + A.z * B.z
-def cross_product(A, B):
-    """Calcule le produit croisé entre deux vecteurs A et B."""
-    x=A.y*B.z-A.z*B.y
-    y=A.z*B.x-A.x*B.z
-    z=A.x*B.y-A.y*B.x
-    return Vector3(x, y, z)
-def vector_length(vector):
-    """Calcule la longueur d'un vecteur."""
-    return np.sqrt(dot_product(vector,vector))
-
+        
 def draw_plane(axis, size=5, color=pr.GRAY):
     """Dessine un plan basé sur un vecteur normal et une taille."""
     axis = vector_normalize(axis)
@@ -86,6 +74,7 @@ def draw_coordinate_axes(origin, scale=3):
 
 def draw_transformation_axis(origin, axis, scale=3):
     """Dessine l'axe de transformation personnalisé à partir de l'origine dans la direction de l'axe donné."""
+    # Mettre à l'échelle le vecteur d'axe pour la visualisation
     scaled_axis = Vector3(origin.x + axis.x * scale, origin.y + axis.y * scale, origin.z + axis.z * scale)
     draw_vector_3(origin, scaled_axis, pr.PURPLE, thickness=0.05)
 
@@ -110,133 +99,142 @@ def load_ply_file(file_path):
     mesh = trimesh.load(file_path)
     return mesh
 
+def cross_product(A, B):
+    """Calcule le produit croisé entre deux vecteurs A et B."""
+    x=A.y*B.z-A.z*B.y
+    y=A.z*B.x-A.x*B.z
+    z=A.x*B.y-A.y*B.x
+    return Vector3(x, y, z)
+
+def vector_length(vector):
+    """Calcule la longueur d'un vecteur."""
+    return np.sqrt(dot_product(vector,vector))
+
+
+def vector_normalize(vector):
+    """Normalise un vecteur pour obtenir un vecteur de longueur 1."""
+    if vector_length(vector)==0: 
+        return 0
+    length = vector_length(vector)
+    x=vector.x/length
+    y=vector.y/length
+    z=vector.z/length
+
+    return Vector3(x,y,z)
+
+def dot_product(A, B):
+    """Calcule le produit scalaire entre deux vecteurs A et B."""
+    return A.x*B.x+A.y+B.Y+A.z*B.Z
+
+def rotation_matrix_homogeneous(axis, theta):
+    """Génère une matrice homogène de rotation autour d'un axe arbitraire (4x4)."""
+    axis = vector_normalize(axis)
+    nx, ny, nz = axis.x, axis.y, axis.z
+    cos_theta = np.cos(theta)
+    sin_theta = np.sin(theta)
+    
+    return np.eye(4)
+
+def scaling_matrix_homogeneous(axis, k):
+    """Génère une matrice homogène de mise à l'échelle le long d'un axe arbitraire (4x4)."""
+    axis = vector_normalize(axis)
+    nx, ny, nz = axis.x, axis.y, axis.z
+    # TODO :
+    return np.eye(4)
+
+def translation_matrix(tx, ty, tz):
+    """Génère une matrice homogène de translation (4x4)."""
+    return np.eye(4)
+
+def orthographic_projection_matrix_homogeneous(axis):
+    """Génère une matrice homogène de projection orthographique sur un plan normal à un axe donné (4x4)."""
+    axis = vector_normalize(axis)
+    nx, ny, nz = axis.x, axis.y, axis.z
+    # TODO :
+    return np.eye(4)
+
+def perspective_projection_matrix( d):
+    """Génère une matrice homogène de projection en perspective avec une distance focale d."""
+    # TODO :
+    return np.eye(4)
+
+def apply_transformations_homogeneous(mesh, translation_mat, rotation_mat, scaling_mat, projection_mat):
+    """Applique les transformations de rotation, de mise à l'échelle et de projection aux sommets du mesh en utilisant des matrices 4x4."""
+    vertices_homogeneous = np.hstack((mesh.original_vertices, np.ones((mesh.original_vertices.shape[0], 1))))
+    transformed_vertices = vertices_homogeneous @ translation_mat.T @ rotation_mat.T @ scaling_mat.T @ projection_mat.T
+    mesh.vertices = transformed_vertices[:, :3] / transformed_vertices[:, 3, np.newaxis]  # Revenir aux coordonnées 3D
+
 def initialize_mesh_for_transforming(mesh):
     """Stocke les sommets originaux du mesh pour permettre un redimensionnement dynamique."""
     mesh.original_vertices = np.copy(mesh.vertices)
 
-def vector_normalize(vector):
-    """Normalise un vecteur pour obtenir un vecteur de longueur 1."""
-    length = vector_length(vector)
-    if length == 0:
-        return Vector3(0, 0, 0)  
-    return Vector3(vector.x / length, vector.y / length, vector.z / length)
-
-
-def vector_length(vector):
-    """Calcule la longueur d'un vecteur."""
-    return np.sqrt(dot_product(vector, vector))
-
-def dot_product(A, B):
-    """Calcule le produit scalaire entre deux vecteurs A et B."""
-    return A.x * B.x + A.y * B.y + A.z * B.z
-
-def scaling_matrix(axis, k):
-    axis = vector_normalize(axis)
-    return np.array([
-        [k + (1 - k) * axis.x * axis.x, (1 - k) * axis.x * axis.y, (1 - k) * axis.x * axis.z],
-        [(1 - k) * axis.y * axis.x, k + (1 - k) * axis.y * axis.y, (1 - k) * axis.y * axis.z],
-        [(1 - k) * axis.z * axis.x, (1 - k) * axis.z * axis.y, k + (1 - k) * axis.z * axis.z]
-    ])
-
-
-def rotation_matrix(axis, theta):
-    axis = vector_normalize(axis)
-    cos_theta = np.cos(theta)
-    sin_theta = np.sin(theta)
-    return np.array([
-        [cos_theta + axis.x * axis.x * (1 - cos_theta), axis.x * axis.y * (1 - cos_theta) - axis.z * sin_theta, axis.x * axis.z * (1 - cos_theta) + axis.y * sin_theta],
-        [axis.y * axis.x * (1 - cos_theta) + axis.z * sin_theta, cos_theta + axis.y * axis.y * (1 - cos_theta), axis.y * axis.z * (1 - cos_theta) - axis.x * sin_theta],
-        [axis.z * axis.x * (1 - cos_theta) - axis.y * sin_theta, axis.z * axis.y * (1 - cos_theta) + axis.x * sin_theta, cos_theta + axis.z * axis.z * (1 - cos_theta)]
-    ])
-def shearing_matrix(axis,s,t):
-    axis = vector_normalize(axis)
-    return np.array([
-        [1,0,s],
-        [0,1,t],
-        [0,0,1]
-    ])
-
-
-
-
-def orthographic_projection_matrix(axis):
-    axis = vector_normalize(axis)
-    return np.array([
-        [1 - axis.x * axis.x, -axis.x * axis.y, -axis.x * axis.z],
-        [-axis.x * axis.y, 1 - axis.y * axis.y, -axis.y * axis.z],
-        [-axis.x * axis.z, -axis.y * axis.z, 1 - axis.z * axis.z]
-    ])
-
-
-def apply_transformations(mesh, rotation_mat, scaling_mat, projection_mat ,shearing_mat):
-    mesh.vertices = mesh.original_vertices @ rotation_mat.T @ scaling_mat.T @ projection_mat.T @ shearing_mat
-
 def main():
-    pr.init_window(1000, 800, "3D Viewer with Rotation, Scaling, and Projection Control")
+    pr.init_window(1000, 900, "Visionneuse 3D avec contrôle de rotation, de mise à l'échelle et de projection")
     pr.set_window_min_size(800, 600)
     camera = initialize_camera()
     pr.set_target_fps(60)
     movement_speed = 0.1
 
+    # Chargement du mesh et initialisation des transformations
     ply_file_path = "cube.ply"
     mesh = load_ply_file(ply_file_path)
-    
     initialize_mesh_for_transforming(mesh)
 
+    # Contrôles d'interface pour les transformations et translations
     scale_factor_ptr = pr.ffi.new('float *', 1.0)
     angle_ptr = pr.ffi.new('float *', 0.0)
     axis_x_ptr = pr.ffi.new('float *', 1.0)
     axis_y_ptr = pr.ffi.new('float *', 0.0)
     axis_z_ptr = pr.ffi.new('float *', 0.0)
-    projection_ptr = pr.ffi.new('bool *', 0)
-    shearing_factor_s_ptr = pr.ffi.new('float *', 0.0)
-    shearing_factor_t_ptr = pr.ffi.new('float *', 0.0)
-
-
-
-
+    translate_x_ptr = pr.ffi.new('float *', 0.0)
+    translate_y_ptr = pr.ffi.new('float *', 0.0)
+    translate_z_ptr = pr.ffi.new('float *', 0.0)
+    
+    d_ptr = pr.ffi.new('float *', 1.0)       # Paramètre de distance pour la projection en perspective
+    projection_type_ptr = pr.ffi.new('float *', -1)  # Valeur par défaut (aucune projection)
 
     while not pr.window_should_close():
         update_camera_position(camera, movement_speed)
         
         pr.begin_drawing()
         pr.clear_background(pr.RAYWHITE)
-        
         pr.begin_mode_3d(camera)
         
         axis = Vector3(axis_x_ptr[0], axis_y_ptr[0], axis_z_ptr[0])
         angle = angle_ptr[0]
         scale_factor = scale_factor_ptr[0]
-        shearing_factor_s = shearing_factor_s_ptr[0]
-        shearing_factor_t = shearing_factor_t_ptr[0]
-
-
-        rotation_mat = rotation_matrix(axis, np.radians(angle))
-        scaling_mat = scaling_matrix(axis, scale_factor)
-        shearing_mat = shearing_matrix(axis, shearing_factor_s,shearing_factor_t)
-
-        projection_mat = np.eye(3)
-        if projection_ptr[0]:
-            projection_mat = orthographic_projection_matrix(axis)
-            
-        # Dessiner les axes de coordonnées standard
+        
+        # Création des matrices de transformation
+        rotation_mat = rotation_matrix_homogeneous(axis, np.radians(angle))
+        scaling_mat = scaling_matrix_homogeneous(axis, scale_factor)
+        
+        # Choix de la projection
+        projection_mat = np.eye(4)
+        if projection_type_ptr[0] > -1 and projection_type_ptr[0] < 1:
+            projection_mat = orthographic_projection_matrix_homogeneous(axis)
+        elif projection_type_ptr[0] == 1:
+            projection_mat = perspective_projection_matrix(d_ptr[0])
+        
+        # Dessin des axes et du mesh
         draw_coordinate_axes(Vector3(0, 0, 0), scale=3)
+        draw_transformation_axis(Vector3(0, 0, 0), axis, scale=3)
+
+        tx = translate_x_ptr[0]
+        ty = translate_y_ptr[0]
+        tz = translate_z_ptr[0]
+        translation_mat = translation_matrix(tx, ty, tz)
         
-        # Obtenir l'axe de transformation en fonction des valeurs du curseur
-        axis = Vector3(axis_x_ptr[0], axis_y_ptr[0], axis_z_ptr[0])
-        # Tracer l'axe de transformation à partir de l'origine
-        draw_transformation_axis(Vector3(0, 0, 0), axis, scale=3)            
-        
-        apply_transformations(mesh, rotation_mat, scaling_mat, projection_mat , shearing_mat )
+        apply_transformations_homogeneous(mesh, translation_mat, rotation_mat, scaling_mat, projection_mat)
         
         draw_plane(axis, 10)
         draw_mesh(mesh)
         pr.end_mode_3d()
 
+        # GUI de contrôle pour les transformations
         pr.draw_text("Échelle:", 750, 50, 20, pr.BLACK)
         pr.gui_slider_bar(pr.Rectangle(750, 80, 200, 20), "0.5", "10", scale_factor_ptr, 0.4, 10.0)
         pr.draw_text("Angle (degrés):", 750, 110, 20, pr.BLACK)
-        pr.gui_slider_bar(pr.Rectangle(750, 140, 200, 20), "0", "360", angle_ptr, 0.0, 360.0)        
+        pr.gui_slider_bar(pr.Rectangle(750, 140, 200, 20), "0", "360", angle_ptr, 0.0, 360.0)
         
         pr.draw_text("Axe de transformation X:", 750, 170, 20, pr.BLACK)
         pr.gui_slider_bar(pr.Rectangle(750, 200, 200, 20), "-1.0", "1.0", axis_x_ptr, -1.0, 1.0)
@@ -244,15 +242,23 @@ def main():
         pr.gui_slider_bar(pr.Rectangle(750, 260, 200, 20), "-1.0", "1.0", axis_y_ptr, -1.0, 1.0)
         pr.draw_text("Axe de transformation Z:", 750, 290, 20, pr.BLACK)
         pr.gui_slider_bar(pr.Rectangle(750, 320, 200, 20), "-1.0", "1.0", axis_z_ptr, -1.0, 1.0)
-        
-        pr.draw_text("Facteur de cisaillement T", 750, 350, 20, pr.BLACK)
-        pr.gui_slider_bar(pr.Rectangle(750, 380, 200, 20), "-1.0", "1.0", shearing_factor_t_ptr, -1.0, 1.0)
-        pr.draw_text("Facteur de cisaillement S", 750, 410, 20, pr.BLACK)
-        pr.gui_slider_bar(pr.Rectangle(750, 450, 200, 20), "-1.0", "1.0", shearing_factor_s_ptr, -1.0, 1.0)
 
+        # Contrôles de translation
+        pr.draw_text("Translation X:", 750, 350, 20, pr.BLACK)
+        pr.gui_slider_bar(pr.Rectangle(750, 380, 200, 20), "-5.0", "5.0", translate_x_ptr, -5.0, 5.0)
+        pr.draw_text("Translation Y:", 750, 410, 20, pr.BLACK)
+        pr.gui_slider_bar(pr.Rectangle(750, 440, 200, 20), "-5.0", "5.0", translate_y_ptr, -5.0, 5.0)
+        pr.draw_text("Translation Z:", 750, 470, 20, pr.BLACK)
+        pr.gui_slider_bar(pr.Rectangle(750, 500, 200, 20), "-5.0", "5.0", translate_z_ptr, -5.0, 5.0)
 
-        pr.draw_text("Projection orthographique:", 750, 520, 20, pr.BLACK)
-        pr.gui_check_box(pr.Rectangle(750, 550, 20, 20), "Activer", projection_ptr)
+        # Ajout d'un espace avant les contrôles de projection
+        pr.draw_text("Type de projection:", 750, 550, 20, pr.BLACK)
+        pr.gui_slider_bar(pr.Rectangle(750, 580, 200, 20), "-1", "1", projection_type_ptr, -1.0, 1.0)
+
+        # Contrôle de la distance de projection pour la perspective
+        if projection_type_ptr[0] == 1:
+            pr.draw_text("Distance de projection:", 750, 610, 20, pr.BLACK)
+            pr.gui_slider_bar(pr.Rectangle(750, 640, 200, 20), "1.0", "8.0", d_ptr, 1.0, 8.0)
 
         pr.end_drawing()
 
