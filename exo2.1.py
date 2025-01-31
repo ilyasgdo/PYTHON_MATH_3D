@@ -38,6 +38,8 @@ def cross_product(A, B):
     y=A.z*B.x-A.x*B.z
     z=A.x*B.y-A.y*B.x
     return Vector3(x, y, z)
+
+
 def vector_length(vector):
     """Calcule la longueur d'un vecteur."""
     return np.sqrt(dot_product(vector,vector))
@@ -133,11 +135,11 @@ def dot_product(A, B):
 def scaling_matrix(axis, k):
     axis = vector_normalize(axis)
     return np.array([
-        [k + (1 - k) * axis.x * axis.x, (1 - k) * axis.x * axis.y, (1 - k) * axis.x * axis.z],
-        [(1 - k) * axis.y * axis.x, k + (1 - k) * axis.y * axis.y, (1 - k) * axis.y * axis.z],
-        [(1 - k) * axis.z * axis.x, (1 - k) * axis.z * axis.y, k + (1 - k) * axis.z * axis.z]
+        [1 + (k - 1) * axis.x**2, (k - 1) * axis.x * axis.y, (k - 1) * axis.x * axis.z, 0],
+        [(k - 1) * axis.x * axis.y, 1 + (k - 1) * axis.y**2, (k - 1) * axis.y * axis.z, 0],
+        [(k - 1) * axis.x * axis.z, (k - 1) * axis.y * axis.z, 1 + (k - 1) * axis.z**2, 0],
+        [0, 0, 0, 1]
     ])
-
 
 def rotation_matrix(axis, theta):
     axis = vector_normalize(axis)
@@ -236,15 +238,15 @@ def main():
         pr.draw_text("Échelle:", 750, 50, 20, pr.BLACK)
         pr.gui_slider_bar(pr.Rectangle(750, 80, 200, 20), "0.5", "10", scale_factor_ptr, 0.4, 10.0)
         pr.draw_text("Angle (degrés):", 750, 110, 20, pr.BLACK)
-        pr.gui_slider_bar(pr.Rectangle(750, 140, 200, 20), "0", "360", angle_ptr, 0.0, 360.0)        
-        
+        pr.gui_slider_bar(pr.Rectangle(750, 140, 200, 20), "0", "360", angle_ptr, 0.0, 360.0)
+
         pr.draw_text("Axe de transformation X:", 750, 170, 20, pr.BLACK)
         pr.gui_slider_bar(pr.Rectangle(750, 200, 200, 20), "-1.0", "1.0", axis_x_ptr, -1.0, 1.0)
         pr.draw_text("Axe de transformation Y:", 750, 230, 20, pr.BLACK)
         pr.gui_slider_bar(pr.Rectangle(750, 260, 200, 20), "-1.0", "1.0", axis_y_ptr, -1.0, 1.0)
         pr.draw_text("Axe de transformation Z:", 750, 290, 20, pr.BLACK)
         pr.gui_slider_bar(pr.Rectangle(750, 320, 200, 20), "-1.0", "1.0", axis_z_ptr, -1.0, 1.0)
-        
+
         pr.draw_text("Facteur de cisaillement T", 750, 350, 20, pr.BLACK)
         pr.gui_slider_bar(pr.Rectangle(750, 380, 200, 20), "-1.0", "1.0", shearing_factor_t_ptr, -1.0, 1.0)
         pr.draw_text("Facteur de cisaillement S", 750, 410, 20, pr.BLACK)
