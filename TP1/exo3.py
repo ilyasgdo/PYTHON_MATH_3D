@@ -2,7 +2,6 @@ import pyray as pr
 import math
 from pyray import Vector3
 
-# Les fonctions vectorielles et de rotation restent les mêmes
 
 def initialize_camera():
     """Initialise la caméra 3D."""
@@ -50,20 +49,28 @@ def draw_fov_cone(point, direction, distance, angle_phi, color=pr.BLUE, segments
         pr.draw_line_3d(points[i], points[i + 1], color)
     pr.draw_line_3d(point, points[-1], color)
 
-def vector_length(vector):
-    """Calcule la longueur d'un vecteur."""
-    return math.sqrt(vector.x ** 2 + vector.y ** 2 + vector.z ** 2)
+def cross_product(A, B):
+    newx=A.y*B.z -A.z*B.y
+    newy=A.z*B.x -A.x* B.z
+    newz=A.x*B.y -A.y *B.x
 
-def vector_normalize(vector):
-    """Normalise un vecteur pour obtenir un vecteur de longueur 1."""
-    length = vector_length(vector)
-    if length == 0:
-        return Vector3(0, 0, 0)
-    return Vector3(vector.x / length, vector.y / length, vector.z / length)
+    return Vector3(newx, newy, newz)
 
 def dot_product(A, B):
-    """Calcule le produit scalaire entre deux vecteurs A et B."""
-    return A.x * B.x + A.y * B.y + A.z * B.z
+    return A.x*B.x+A.y*B.y+A.z * B.z
+
+def vector_length(vector):
+    return math.sqrt(dot_product(vector, vector))
+
+def vector_normalize(vector):
+
+    if vector_length(vector) == 0:
+        return 0
+    length = vector_length(vector)
+    return Vector3(vector.x /length, vector.y /length, vector.z /length)
+
+
+
 
 def rotate_vector_y(vector, angle):
     """Fait tourner un vecteur autour de l'axe Y selon un angle donné en radians."""
@@ -77,15 +84,15 @@ def rotate_vector_y(vector, angle):
 
 def is_point_in_fov(fov_position, fov_direction, fov_distance, fov_angle, point):
     """Vérifie si un point est dans le champ de vision défini par une position, une direction, une distance et un angle."""
-    to_point = Vector3(point.x - fov_position.x, point.y - fov_position.y, point.z - fov_position.z)
-    distance_to_point = vector_length(to_point)
-    if distance_to_point > fov_distance:
+    point = Vector3(point.x - fov_position.x, point.y - fov_position.y, point.z - fov_position.z)
+    distance = vector_length(point)
+    if distance > fov_distance:
         return False
-    norm_fov_direction = vector_normalize(fov_direction)
-    norm_to_point = vector_normalize(to_point)
-    dot = dot_product(norm_fov_direction, norm_to_point)
-    cos_half_fov = math.cos(math.radians(fov_angle) / 2)
-    return dot >= cos_half_fov
+    normalize_fov_direction = vector_normalize(fov_direction)
+    normalize_point = vector_normalize(point)
+    dot = dot_product(normalize_fov_direction, normalize_point)
+    cos_moitier_fov = math.cos(math.radians(fov_angle) / 2)
+    return dot >= cos_moitier_fov
 
 def draw_points(points, fov_position, fov_direction, fov_distance, fov_angle):
     """Dessine les points, avec une couleur verte s'ils sont dans le champ de vision (FOV)."""
@@ -107,6 +114,9 @@ def main():
     point_a = Vector3(1.5, 0, 2)
     point_b = Vector3(2, 0, 4)
     point_c = Vector3(-5, 0, 4)
+    point_d = Vector3(4, 0, 2)
+    point_e = Vector3(2, 0, -10)
+    point_f = Vector3(-7, 7, 4)
     fov_distance = 5
     fov_angle = 90
 
@@ -117,7 +127,7 @@ def main():
         pr.begin_mode_3d(camera)
         
         pr.draw_grid(grid_size, 1)  # Dessine une grille pour référence
-        draw_points([point_a, point_b, point_c], fov_position, fov_direction, fov_distance, fov_angle)
+        draw_points([point_a, point_b, point_c,point_d, point_e, point_f], fov_position, fov_direction, fov_distance, fov_angle)
         draw_fov_cone(fov_position, fov_direction, fov_distance, fov_angle)
 
         pr.end_mode_3d()

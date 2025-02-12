@@ -3,33 +3,17 @@ import numpy as np
 import math
 from pyray import Vector3
 import trimesh
+from TP1.exo1_2 import (
+    initialize_camera,
+    update_camera_position,
+    dot_product,
+    vector_length,
+    cross_product,
+    vector_normalize,
 
-def initialize_camera():
-    """Initialise la caméra 3D."""
-    camera = pr.Camera3D(
-        Vector3(0, 10, 10),  # position
-        Vector3(0, 0, 0),    # cible
-        Vector3(0, 1, 0),    # haut
-        45,                  # fovy (champ de vision dans la direction y)
-        pr.CAMERA_PERSPECTIVE
-    )
-    return camera
+)
 
-def update_camera_position(camera, movement_speed):
-    """Met à jour la position de la caméra en fonction des touches pressées."""
-    if pr.is_key_down(pr.KEY_W):
-        camera.position.z -= movement_speed
-    if pr.is_key_down(pr.KEY_S):
-        camera.position.z += movement_speed
-    if pr.is_key_down(pr.KEY_A):
-        camera.position.x -= movement_speed
-    if pr.is_key_down(pr.KEY_D):
-        camera.position.x += movement_speed
-    if pr.is_key_down(pr.KEY_Q):
-        camera.position.y += movement_speed
-    if pr.is_key_down(pr.KEY_E):
-        camera.position.y -= movement_speed
-        
+
 def draw_plane(axis, size=5, color=pr.GRAY):
     """Dessine un plan basé sur un vecteur normal et une taille."""
     axis = vector_normalize(axis)
@@ -99,79 +83,59 @@ def load_ply_file(file_path):
     mesh = trimesh.load(file_path)
     return mesh
 
-def cross_product(A, B):
-    """Calcule le produit croisé entre deux vecteurs A et B."""
-    x=A.y*B.z-A.z*B.y
-    y=A.z*B.x-A.x*B.z
-    z=A.x*B.y-A.y*B.x
-    return Vector3(x, y, z)
-
-def vector_length(vector):
-    """Calcule la longueur d'un vecteur."""
-    return np.sqrt(dot_product(vector,vector))
 
 
-def vector_normalize(vector):
-    """Normalise un vecteur pour obtenir un vecteur de longueur 1."""
-    if vector_length(vector)==0: 
-        return 0
-    length = vector_length(vector)
-    x=vector.x/length
-    y=vector.y/length
-    z=vector.z/length
+def shearing_matrix_homogeneous(axis, s, t):
+    axis = vector_normalize(axis)
+    return np.array([
+        [1, 0, s,0],
+        [0, 1, t,0],
+        [0, 0, 1,0],
+        [0, 0, 0, 1]
+    ])
 
-    return Vector3(x,y,z)
-
-def dot_product(A, B):
-    """Calcule le produit scalaire entre deux vecteurs A et B."""
-    return A.x * B.x + A.y * B.y + A.z * B.z
 
 
 def rotation_matrix_homogeneous(axis, theta):
     """Génère une matrice homogène de rotation autour d'un axe arbitraire (4x4)."""
     axis = vector_normalize(axis)
-    nx, ny, nz = axis.x, axis.y, axis.z
-    cos_theta = np.cos(theta)
-    sin_theta = np.sin(theta)
-    
-    return np.eye(4)
+    cos_t = np.cos(theta)
+    sin_t = np.sin(theta)
+    return np.array([
+        [cos_t + axis.x ** 2 * (1 - cos_t), axis.x * axis.y * (1 - cos_t) - axis.z * sin_t,
+         axis.x * axis.z * (1 - cos_t) + axis.y * sin_t, 0],
+        [axis.y * axis.x * (1 - cos_t) + axis.z * sin_t, cos_t + axis.y ** 2 * (1 - cos_t),
+         axis.y * axis.z * (1 - cos_t) - axis.x * sin_t, 0],
+        [axis.z * axis.x * (1 - cos_t) - axis.y * sin_t, axis.z * axis.y * (1 - cos_t) + axis.x * sin_t,
+         cos_t + axis.z ** 2 * (1 - cos_t), 0],
+        [0, 0, 0, 1]
+    ])
 
 def scaling_matrix_homogeneous(axis, k):
     """Génère une matrice homogène de mise à l'échelle le long d'un axe arbitraire (4x4)."""
     axis = vector_normalize(axis)
-    nx, ny, nz = axis.x, axis.y, axis.z
+    axis = vector_normalize(axis)
+    return np.array([
+        [1 + (k - 1) * axis.x ** 2, (k - 1) * axis.x * axis.y, (k - 1) * axis.x * axis.z, 0],
+        [(k - 1) * axis.x * axis.y, 1 + (k - 1) * axis.y ** 2, (k - 1) * axis.y * axis.z, 0],
+        [(k - 1) * axis.x * axis.z, (k - 1) * axis.y * axis.z, 1 + (k - 1) * axis.z ** 2, 0],
+        [0, 0, 0, 1]
+    ])
 
+def orthographic_projection_matrix_homogeneous(axis):
+    """Génère une matrice homogène de projection orthographique sur un plan normal à un axe donné (4x4)."""
 
-    return np.eye(4)
-def scaling_matrix(axis, k):
     axis = vector_normalize(axis)
     return np.array([
-        [1 + (k - 1) * axis.x**2, (k - 1) * axis.x * axis.y, (k - 1) * axis.x * axis.z, 0],
-        [(k - 1) * axis.x * axis.y, 1 + (k - 1) * axis.y**2, (k - 1) * axis.y * axis.z, 0],
-        [(k - 1) * axis.x * axis.z, (k - 1) * axis.y * axis.z, 1 + (k - 1) * axis.z**2, 0],
+        [1 - axis.x ** 2, -axis.x * axis.y, -axis.x * axis.z,0],
+        [-axis.x * axis.y, 1 - axis.y ** 2, -axis.y * axis.z,0],
+        [-axis.x * axis.z, -axis.y * axis.z, 1 - axis.z ** 2,0],
         [0, 0, 0, 1]
     ])
-def rotation_matrix(axis, theta):
-    axis = vector_normalize(axis)
-    cos_t = np.cos(theta)
-    sin_t = np.sin(theta)
-    return np.array([
-        [cos_t + axis.x**2*(1 - cos_t), axis.x*axis.y*(1 - cos_t) - axis.z*sin_t, axis.x*axis.z*(1 - cos_t) + axis.y*sin_t, 0],
-        [axis.y*axis.x*(1 - cos_t) + axis.z*sin_t, cos_t + axis.y**2*(1 - cos_t), axis.y*axis.z*(1 - cos_t) - axis.x*sin_t, 0],
-        [axis.z*axis.x*(1 - cos_t) - axis.y*sin_t, axis.z*axis.y*(1 - cos_t) + axis.x*sin_t, cos_t + axis.z**2*(1 - cos_t), 0],
-        [0, 0, 0, 1]
-    ])
-def orthographic_projection_matrix(axis):
-    axis = vector_normalize(axis)
-    return np.array([
-        [1 - axis.x**2, -axis.x*axis.y, -axis.x*axis.z, 0],
-        [-axis.x*axis.y, 1 - axis.y**2, -axis.y*axis.z, 0],
-        [-axis.x*axis.z, -axis.y*axis.z, 1 - axis.z**2, 0],
-        [0, 0, 0, 1]
-    ])
+
 
 def translation_matrix(tx, ty, tz):
-
+    """Génère une matrice homogène de translation (4x4)."""
     matrix = np.eye(4)
     matrix[0:3, 3] = [tx, ty, tz]
     print(matrix)
@@ -187,19 +151,10 @@ def shearing_matrix(axis,s,t):
     ])
 
 
-
-
-def orthographic_projection_matrix_homogeneous(axis):
-    """Génère une matrice homogène de projection orthographique sur un plan normal à un axe donné (4x4)."""
-    axis = vector_normalize(axis)
-    nx, ny, nz = axis.x, axis.y, axis.z
-    # TODO :
-    return np.eye(4)
-
 def perspective_projection_matrix(d):
     """Génère une matrice homogène de projection en perspective avec une distance focale d."""
     if d == 0:
-        d = 1e-8
+        d = 1e-10 # pour enlever div by zero
 
     matrix = np.array([
         [1, 0, 0, 0],
@@ -210,7 +165,7 @@ def perspective_projection_matrix(d):
 
     return matrix
 
-def apply_transformations_homogeneous(mesh, translation_mat, rotation_mat, scaling_mat, projection_mat,shearing_mat):
+def apply_transformations_homogeneous(mesh, translation_mat, rotation_mat, scaling_mat, projection_mat):
     """Applique les transformations de rotation, de mise à l'échelle et de projection aux sommets du mesh en utilisant des matrices 4x4."""
     vertices_homogeneous = np.hstack((mesh.original_vertices, np.ones((mesh.original_vertices.shape[0], 1))))
     transformed_vertices = vertices_homogeneous @ translation_mat.T @ rotation_mat.T @ scaling_mat.T  @ projection_mat.T
@@ -225,10 +180,10 @@ def main():
     pr.set_window_min_size(800, 600)
     camera = initialize_camera()
     pr.set_target_fps(120)
-    movement_speed = 0.1
+    movement_speed = 0.2
 
     # Chargement du mesh et initialisation des transformations
-    ply_file_path = "cube.ply"
+    ply_file_path = "../cube.ply"
     mesh = load_ply_file(ply_file_path)
     initialize_mesh_for_transforming(mesh)
 
@@ -241,8 +196,7 @@ def main():
     translate_x_ptr = pr.ffi.new('float *', 0.0)
     translate_y_ptr = pr.ffi.new('float *', 0.0)
     translate_z_ptr = pr.ffi.new('float *', 0.0)
-    shearing_factor_s_ptr = pr.ffi.new('float *', 0.0)
-    shearing_factor_t_ptr = pr.ffi.new('float *', 0.0)
+
 
     d_ptr = pr.ffi.new('float *', 1.0)       # Paramètre de distance pour la projection en perspective
     projection_type_ptr = pr.ffi.new('float *', -1)  # Valeur par défaut (aucune projection)
@@ -258,13 +212,11 @@ def main():
         angle = angle_ptr[0]
 
         scale_factor = scale_factor_ptr[0]
-        shearing_factor_s = shearing_factor_s_ptr[0]
-        shearing_factor_t = shearing_factor_t_ptr[0]
 
-        rotation_mat = rotation_matrix(axis, np.radians(angle))
-        scaling_mat = scaling_matrix(axis, scale_factor)
-        shearing_mat = shearing_matrix(axis, shearing_factor_s, shearing_factor_t)
-        
+
+        rotation_mat = rotation_matrix_homogeneous(axis, np.radians(angle))
+        scaling_mat = scaling_matrix_homogeneous(axis, scale_factor)
+
         # Choix de la projection
         projection_mat = np.eye(4)
         if projection_type_ptr[0] > -1 and projection_type_ptr[0] < 1:
@@ -281,7 +233,7 @@ def main():
         tz = translate_z_ptr[0]
         translation_mat = translation_matrix(tx, ty, tz)
         
-        apply_transformations_homogeneous(mesh, translation_mat, rotation_mat, scaling_mat, projection_mat,shearing_mat)
+        apply_transformations_homogeneous(mesh, translation_mat, rotation_mat, scaling_mat, projection_mat)
         
         draw_plane(axis, 10)
         draw_mesh(mesh)
@@ -313,12 +265,6 @@ def main():
         pr.draw_text("Translation Z:", 750, 470, 20, pr.BLACK)
         pr.gui_slider_bar(pr.Rectangle(750, 500, 200, 20), "-5.0", "5.0", translate_z_ptr, -5.0, 5.0)
 
-        # Cisaillement
-        pr.draw_text("Cisaillement T:", 750, 530, 20, pr.BLACK)
-        pr.gui_slider_bar(pr.Rectangle(750, 560, 200, 20), "-1.0", "1.0", shearing_factor_t_ptr, -1.0, 1.0)
-
-        pr.draw_text("Cisaillement S:", 750, 590, 20, pr.BLACK)
-        pr.gui_slider_bar(pr.Rectangle(750, 620, 200, 20), "-1.0", "1.0", shearing_factor_s_ptr, -1.0, 1.0)
 
         # Projection
         pr.draw_text("Type projection:", 750, 650, 20, pr.BLACK)

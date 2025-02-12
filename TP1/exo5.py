@@ -34,36 +34,34 @@ def load_ply_file(file_path):
     mesh = trimesh.load(file_path)
     return mesh
 
-def vector_cross_product(A, B):
-    """Calcule le produit vectoriel de deux vecteurs 3D."""
-    return Vector3(
-        A.y * B.z - A.z * B.y,
-        A.z * B.x - A.x * B.z,
-        A.x * B.y - A.y * B.x
-    )
+def cross_product(A, B):
+    newx=A.y*B.z -A.z*B.y
+    newy=A.z*B.x -A.x* B.z
+    newz=A.x*B.y -A.y *B.x
 
-def vector_length(vector):
-    """Calcule la longueur d'un vecteur."""
-    return math.sqrt(vector.x**2 + vector.y**2 + vector.z**2)
-
-def vector_normalize(vector):
-    """Normalise un vecteur pour obtenir un vecteur de longueur 1."""
-    length = vector_length(vector)
-    if length == 0:
-        return Vector3(0, 0, 0)  # Retourne un vecteur nul si la longueur est 0
-    return Vector3(vector.x / length, vector.y / length, vector.z / length)
+    return Vector3(newx, newy, newz)
 
 def dot_product(A, B):
-    """Calcule le produit scalaire entre deux vecteurs A et B."""
-    return A.x * B.x + A.y * B.y + A.z * B.z
+    return A.x*B.x+A.y*B.y+A.z * B.z
+
+def vector_length(vector):
+    return math.sqrt(dot_product(vector, vector))
+
+def vector_normalize(vector):
+
+    if vector_length(vector) == 0:
+        return 0
+    length = vector_length(vector)
+    return Vector3(vector.x /length, vector.y /length, vector.z /length)
+
 
 
 def compute_face_center(v0, v1, v2):
     """Calcule le centre d'une face triangulaire."""
     return Vector3(
-        (v0.x + v1.x + v2.x) / 3,
-        (v0.y + v1.y + v2.y) / 3,
-        (v0.z + v1.z + v2.z) / 3
+        (v0.x+v1.x+v2.x) /3,
+        (v0.y+v1.y+v2.y) /3,
+        (v0.z+v1.z+v2.z) /3
     )
 
 def compute_vertex_normals(mesh, face_normals):
@@ -82,14 +80,11 @@ def compute_vertex_normals(mesh, face_normals):
             vertex_normals[vertex_index].z += normal.z
             vertex_count[vertex_index] += 1
 
-    # Moyenne et normalisation des normales des sommets
     for i in vertex_normals:
         if vertex_count[i] > 0:
-            # Moyenne des normales des faces adjacentes
             vertex_normals[i].x /= vertex_count[i]
             vertex_normals[i].y /= vertex_count[i]
             vertex_normals[i].z /= vertex_count[i]
-            # Normalisation du vecteur normalisé
             vertex_normals[i] = vector_normalize(vertex_normals[i])
 
     return vertex_normals
@@ -103,22 +98,16 @@ def compute_face_normals(mesh):
         v1 = Vector3(*mesh.vertices[face[1]])
         v2 = Vector3(*mesh.vertices[face[2]])
 
-        # Calcul des vecteurs des arêtes
         edge1 = Vector3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z)
         edge2 = Vector3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z)
 
-        # Produit vectoriel pour obtenir la normale
-        normal = Vector3(
-            edge1.y * edge2.z - edge1.z * edge2.y,
-            edge1.z * edge2.x - edge1.x * edge2.z,
-            edge1.x * edge2.y - edge1.y * edge2.x
-        )
-        normal = vector_normalize(normal)  # Normalisation de la normale
+        Vnormale = cross_product(edge1, edge2)
+        normal_normale = vector_normalize(Vnormale)
 
         # Calcul du centre de la face
-        center = compute_face_center(v0, v1, v2)
+        center =compute_face_center(v0, v1, v2)
         
-        normals.append((center, normal))
+        normals.append((center, normal_normale))
     return normals
 
 
@@ -190,7 +179,7 @@ def main():
     movement_speed = 0.1
 
     # Charge et affiche le fichier PLY
-    ply_file_path = "dolphin.ply"  # Remplacez par le chemin de votre fichier PLY
+    ply_file_path = "../dolphin.ply"  # Remplacez par le chemin de votre fichier PLY
     mesh = load_ply_file(ply_file_path)
     face_normals = compute_face_normals(mesh)
     vertex_normals = compute_vertex_normals(mesh, face_normals)

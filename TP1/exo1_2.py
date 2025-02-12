@@ -98,7 +98,7 @@ def draw_text_if_visible_3(camera, text, position_3d, font_size=20, color=pr.BLA
         print("La position du texte est hors des limites de l'écran :", text_position_2d)
 
 
-def draw_scene(camera, grid_size, points, direction, turns):
+def draw_scene(L,camera, grid_size, points, direction, turns):
     """
     Affiche les éléments de la scène : axes, points, vecteurs et directions de rotation.
     """
@@ -121,51 +121,59 @@ def draw_scene(camera, grid_size, points, direction, turns):
             draw_text_if_visible_3(camera, turn, midpoint, font_size=10, color=pr.BLACK)
 
     pr.end_mode_3d()
+    decalage=10
+    for line in L:
+        pr.draw_text(line, 60, decalage, 10, pr.BLACK)
+        decalage += 22
     pr.end_drawing()
-
 def cross_product(A, B):
-    newx=A.y * B.z -A.z*B.y
-    newy=A.z * B.x -A.x*B.z
-    newz=A.x * B.y -A.y*B.x
+    """Calcule le produit croisé entre deux vecteurs A et B."""
 
+    newx=A.y*B.z -A.z*B.y
+    newy=A.z*B.x -A.x* B.z
+    newz=A.x*B.y -A.y *B.x
 
     return Vector3(newx, newy, newz)
 
 def dot_product(A, B):
-        return A.x * B.x + A.y * B.y + A.z * B.z
-
-
+    """Calcule le produit scalaire entre deux vecteurs A et B."""
+    return A.x*B.x+A.y*B.y+A.z * B.z
 
 def vector_length(vector):
+    """Calcule la longueur d'un vecteur."""
+
     return math.sqrt(dot_product(vector, vector))
 
 def vector_normalize(vector):
+    """Normalise un vecteur pour obtenir un vecteur de longueur 1."""
 
-    if vector_length(vector)==0: 
+    if vector_length(vector) == 0:
         return 0
     length = vector_length(vector)
+    return Vector3(vector.x /length, vector.y /length, vector.z /length)
 
-    return Vector3(vector.x/length,vector.y/length,vector.z/length)
+
+
 
 def check_turn_direction(a, b, c):
     """Calcule le produit vectoriel pour déterminer la direction de rotation."""
     
     AB = Vector3(b.x - a.x, b.y - a.y, b.z - a.z)
-    BC = Vector3(c.x - b.x, c.y - b.y, c.z - b.z)
+    BC = Vector3(c.x -b.x, c.y-b.y, c.z - b.z)
     
-    cross_AB_BC = cross_product(AB, BC)
+    XAB_BC = cross_product(AB, BC)
 
-    if cross_AB_BC.y > 0:
+    if XAB_BC.y > 0:
         print("AntiHoraire")
-        return cross_AB_BC, "AntiHoraire"
-    elif cross_AB_BC.y < 0:
+        return XAB_BC, "AntiHoraire"
+    elif XAB_BC.y < 0:
         print("Horaire")
-        return cross_AB_BC, "Horaire"
+        return XAB_BC, "Horaire"
         
     else:
-        print("None")
+        print("collineaire§")
 
-        return cross_AB_BC, "None"    
+        return XAB_BC, "colineaire"
 
 def update_camera_position(camera, movement_speed):
     """Met à jour la position de la caméra en fonction des touches pressées."""
@@ -196,7 +204,12 @@ def check_turn_directions_for_maze(points):
         _, turn = check_turn_direction(a, b, c)
         directions.append(turn)
     return directions
-
+def control_maze_turns(points):
+    results = []
+    for i in range(1, len(points) - 1):
+        cross_vector, turn = check_turn_direction(points[i - 1], points[i], points[i + 1])
+        results.append(f"pont n°{i}: {turn} (val de y ={cross_vector.y:.2f})")
+    return results
 
 def main():
     pr.init_window(800, 600, "Produit Vectoriel pour la Direction de Rotation")
@@ -207,14 +220,15 @@ def main():
     movement_speed = 0.1
 
     # Génère des points pour la spirale en zigzag
-    points = generate_maze_path(50, int(grid_size / 2), 1.0, True)
+    points = generate_maze_path(20, int(grid_size / 2), 1.0, True)
+    list = control_maze_turns(points)
 
     # Vérifie les directions de rotation pour chaque trio de points
     turns = check_turn_directions_for_maze(points)
 
     while not pr.window_should_close():
         update_camera_position(camera, movement_speed)
-        draw_scene(camera, grid_size, points, None, turns)
+        draw_scene(list,camera, grid_size, points, None, turns)
         
     pr.close_window()
 
