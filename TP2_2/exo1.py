@@ -62,13 +62,13 @@ def draw_transformation_axis(origin, axis, scale=3):
     scaled_axis = Vector3(origin.x + axis.x * scale, origin.y + axis.y * scale, origin.z + axis.z * scale)
     draw_vector_3(origin, scaled_axis, pr.PURPLE, thickness=0.05)
 
-def draw_mesh(mesh):
+def draw_mesh(mesh, color=pr.LIGHTGRAY):
     """Dessine le mesh complet avec sommets, arêtes et faces."""
     for face in mesh.faces:
         v0 = Vector3(*mesh.vertices[face[0]])
         v1 = Vector3(*mesh.vertices[face[1]])
         v2 = Vector3(*mesh.vertices[face[2]])
-        pr.draw_triangle_3d(v0, v1, v2, pr.LIGHTGRAY)
+        pr.draw_triangle_3d(v0, v1, v2, color)
     
     for edge in mesh.edges:
         v_start = Vector3(*mesh.vertices[edge[0]])

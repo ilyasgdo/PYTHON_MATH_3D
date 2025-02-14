@@ -1,8 +1,3 @@
-
-
-
-
-
 import pyray as pr
 import numpy as np
 import math
@@ -18,7 +13,6 @@ from TP1.exo1_2 import (
     vector_normalize,
 
 )
-
 
 def draw_plane(axis, size=5, color=pr.GRAY):
     """Dessine un plan basé sur un vecteur normal et une taille."""
@@ -156,7 +150,7 @@ def main():
     pr.set_target_fps(60)
     movement_speed = 0.1
 
-    ply_file_path = "../cube.ply"
+    ply_file_path = "cube.ply"
     mesh = load_ply_file(ply_file_path)
 
     initialize_mesh_for_transforming(mesh)

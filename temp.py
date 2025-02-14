@@ -34,6 +34,7 @@ def main():
     axis_z_ptr = pr.ffi.new('float *', 0.0)
     orbit_count_ptr = pr.ffi.new('float *', 5)
     orbit_radius_ptr = pr.ffi.new('float *', 5)
+    cubes_per_turn_ptr = pr.ffi.new('float *', 5.0)  # 5 cubes par tour par défaut
 
     # Créer une liste de cubes orbitaux
     # TODO : expliquer tous les différents paramètres (e.g., inclination)
@@ -75,8 +76,8 @@ def main():
         # Dessiner les cubes orbitaux
         for i in range(round(orbit_count_ptr[0])):
             orbit = orbit_cubes[i]
-            # TODO : expliquer cette ligne en expérimentant et en lisant la documentation
-            angle = pr.get_time() * (1 if orbit["clockwise"] else -1) + orbit["angle_offset"]
+            # Calcul de l'angle avec espacement régulier basé sur le nombre de cubes par tour
+            angle = pr.get_time() * (1 if orbit["clockwise"] else -1) + (i * 2 * np.pi / cubes_per_turn_ptr[0])
 
             # Rotation autour de l'axe du cube
             orbit_rotation = rotation_matrix_homogeneous(orbit["rotation_axis"], angle)
@@ -117,6 +118,8 @@ def main():
         pr.gui_slider_bar(pr.Rectangle(10, 420, 200, 20), "0", "50", orbit_count_ptr, 0, max_orbits)
         pr.draw_text("Rayon d'Orbite:", 10, 440, 20, pr.BLACK)
         pr.gui_slider_bar(pr.Rectangle(10, 460, 200, 20), "0", "10", orbit_radius_ptr, 0, 10)
+        pr.draw_text("Cubes par Tour:", 10, 480, 20, pr.BLACK)
+        pr.gui_slider_bar(pr.Rectangle(10, 500, 200, 20), "1", "20", cubes_per_turn_ptr, 1, 20)
 
         pr.end_drawing()
 
