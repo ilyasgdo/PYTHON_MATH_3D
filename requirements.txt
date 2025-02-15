@@ -2,3 +2,4 @@ raylib
 numpy
 pandas
 pyray
+trimesh
